@@ -57,7 +57,7 @@ async def handle_callback_query(callback_query: types.CallbackQuery):
     user = await db.get_user(tg_id)
 
     if not user or len(user) < 1:
-        user = await registration_user(callback_query.message.from_user)
+        user = await registration_user(callback_query.from_user)
 
         if not user or len(user) < 1:
             await callback_query.answer(text=await get_error_phrase(), show_alert=True)
