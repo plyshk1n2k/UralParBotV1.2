@@ -252,6 +252,10 @@ async def show_groups(callback_query: types.CallbackQuery, group_data: dict | li
 async def create_groups_list(parent_uid: str | None) -> dict:
     groups = await db.get_groups_by_parent(parent_uid, ['NoMark'])
 
+    if groups is None:
+        await logger.log('Нет данных о группах товаров!', logger.log_level.WARN)
+        return {}
+
     result = {
         group[1]: {
             'products': {
@@ -326,7 +330,10 @@ async def main():
     tasks.append(bg_task)
 
     try:
-        await db.connect_to_db()
+        is_connect_db = await db.connect_to_db()
+        if is_connect_db is False:
+            await logger.log('НЕ УДАЛОСЬ ПОДКЛЮЧИТЬСЯ К БД!!!', logger.log_level.ERROR)
+            return False
 
         global product_cash
         product_cash = await create_groups_list(None)

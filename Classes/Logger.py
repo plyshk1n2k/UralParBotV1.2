@@ -29,6 +29,7 @@ class Logger:
     def add_file_handler(self):
         log_file = os.path.join(self.logs_folder, f'{self.current_date}.log')
         handler = AsyncFileHandler(filename=log_file)
+        self.logger.handlers.clear()  # Очищаем все существующие обработчики
         self.logger.add_handler(handler)
 
     def format_log_message(self, message, level, caller_info=None):
@@ -39,7 +40,7 @@ class Logger:
     async def log(self, message, level=LogLevel.INFO):
         current_date = datetime.now().strftime('%Y-%m-%d')
         if current_date != self.current_date:
-            # Если сменилась дата, создаем новый файл лога
+            # Если сменилась дата, создаем новый файл лога и обновляем обработчик файлового журнала
             self.current_date = current_date
             self.add_file_handler()
 
