@@ -69,6 +69,13 @@ async def handle_callback_query(callback_query: types.CallbackQuery):
         await show_bonus_card(user, callback_query)
     elif query == 'assortment':
         await show_groups(callback_query, product_cash)
+    elif query == 'addresses' or query == 'go_back_to_addresses':
+        await show_addresses_shop(callback_query)
+    elif query.startswith('location_'):
+        # Получаем координаты из callback data
+        _, latitude, longitude, shop_name = callback_query.data.split('_')
+
+        await send_info_shop(callback_query, latitude, longitude, shop_name)
     elif query == 'go_to_main':
         try:
             await callback_query.message.delete()
@@ -247,6 +254,32 @@ async def show_groups(callback_query: types.CallbackQuery, group_data: dict | li
         reply_markup=get_dynamic_group_product_keyboard(data_keyboard),
         parse_mode=ParseMode.MARKDOWN_V2
     )
+
+
+async def show_addresses_shop(callback_query: types.CallbackQuery) -> None:
+    text_msg = ('Вот список наших магазинов.\n'
+                'Заходите в любой, будем рады вас видеть! 🤗')
+
+    await bot.edit_message_text(
+        text=text_msg,
+        chat_id=callback_query.message.chat.id,
+        message_id=callback_query.message.message_id,
+        reply_markup=get_shops_keyboard())
+
+
+async def send_info_shop(callback_query: types.CallbackQuery, latitude, longitude, shop_name) -> None:
+    # Отправляем локацию магазина
+    await callback_query.message.delete()
+
+    await bot.send_location(callback_query.from_user.id, latitude, longitude)
+    keyboard = get_go_back_to_addresses_keyboard()
+    # Отправляем доп. информацию
+    if shop_name == 'kashirka':
+        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-21:30', reply_markup=keyboard)
+    elif shop_name == 'bluhera':
+        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-21:00',reply_markup=keyboard)
+    elif shop_name == 'topolinka':
+        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-22:00',reply_markup=keyboard)
 
 
 async def create_groups_list(parent_uid: str | None) -> dict:
