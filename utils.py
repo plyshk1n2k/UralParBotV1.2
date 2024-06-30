@@ -35,6 +35,10 @@ async def background_task():
                 await asyncio.sleep(300)  # Пример: ждем 300 секунд между итерациями
     except asyncio.CancelledError:
         await logger.log('Background task is cancelled.', level=LogLevel.INFO)
+        print('Выполнение задач завершено! Смотреть лог ошибок...')
+    finally:
+        await logger.log('Завершаем работу утилит', level=LogLevel.INFO)
+        print('Завершаем работу утилит')
 
 if __name__ == '__main__':
     asyncio.run(background_task())
