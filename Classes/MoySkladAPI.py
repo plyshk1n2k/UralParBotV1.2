@@ -177,9 +177,9 @@ class MoyskladAPI:
                 await self.db.add_product_remains(product_uid, store_uid, stock)
 
     async def process_bonus_operations(self, operation_id, card_number, moment_operation, points_earned):
-        card_id = await self.db.get_card_by_number(card_number)
-        if card_id:
-            await self.db.add_bonus_operation(card_id, operation_id, moment_operation, points_earned)
+        card = await self.db.get_card_by_number(card_number)
+        if card:
+            await self.db.add_bonus_operation(card[0], operation_id, moment_operation, points_earned)
         else:
             await self.logger.log(f"При добавлении бонусной операции не найдена карта - {card_number}",
                                   LogLevel.WARNING)
