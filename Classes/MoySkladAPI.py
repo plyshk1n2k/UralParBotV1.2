@@ -1,3 +1,5 @@
+import datetime
+
 import aiohttp
 import asyncio
 from config import TOKEN_MS
@@ -14,6 +16,8 @@ class MoyskladAPI:
     PRODUCT_FOLDER_URL = f'{BASE_URL}productfolder'
     PRODUCTS_URL = f'{BASE_URL}product'
     STOCK_BY_STORE_URL = f'{REPORT_URL}stock/bystore'
+    BONUS_OPERATIONS_URL = f'{BASE_URL}bonustransaction'
+
     LIMIT = 1000
 
     def __init__(self):
@@ -172,6 +176,14 @@ class MoyskladAPI:
 
                 await self.db.add_product_remains(product_uid, store_uid, stock)
 
+    async def process_bonus_operations(self, operation_id, card_number, moment_operation, points_earned):
+        card_id = await self.db.get_card_by_number(card_number)
+        if card_id:
+            await self.db.add_bonus_operation(card_id, operation_id, moment_operation, points_earned)
+        else:
+            await self.logger.log(f"При добавлении бонусной операции не найдена карта - {card_number}",
+                                  LogLevel.WARNING)
+
     async def get_counterparties(self, tag: str):
         params = {'filter': f'tags={tag}', 'limit': self.LIMIT}
         url = self.COUNTERPARTY_URL
@@ -255,6 +267,42 @@ class MoyskladAPI:
 
         except Exception as e:
             await self.logger.log(f"Error processing stock by stores: {e}", LogLevel.ERROR)
+
+    async def get_bonus_operations(self):
+        today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+        params = {
+            "filter": f"moment>={today}",
+            "limit": self.LIMIT
+        }
+        url = self.BONUS_OPERATIONS_URL
+
+        try:
+            while url:
+                # Получаем операции с баллами
+                response = await self.fetch_data(url, params)
+                for item in response.get('rows', []):
+                    # Если тип транзакции начисление и операция выполнена соберем по ней информацию
+                    if item.get('transactionType', '') == 'EARNING' and item.get('transactionStatus',
+                                                                                 '') == 'COMPLETED':
+                        points_earned = item.get('bonusValue', 0)
+                        operation_id = item.get('id', '')
+                        moment_operation = item.get('moment', today)
+                        counterparty_id = item.get('agent', {}).get('meta', {}).get('href', '').split('/')[-1]
+
+                        if operation_id and counterparty_id:
+                            # Получим информацию по контрагенту и его карте
+                            counterparty_url = f'{self.COUNTERPARTY_URL}/{counterparty_id}'
+                            counterparty_response = await self.fetch_data(counterparty_url)
+                            card_number = counterparty_response.get('discountCardNumber', None)
+
+                            if card_number:
+                                await self.process_bonus_operations(operation_id, card_number, moment_operation,
+                                                                    points_earned)
+
+                    url = response.get('meta', {}).get('nextHref')
+                    params = {}
+        except Exception as e:
+            await self.logger.log(f"Error processing bonus operations: {e}", LogLevel.ERROR)
 
 
 # Пример использования

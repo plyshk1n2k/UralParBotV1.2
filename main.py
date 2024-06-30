@@ -277,9 +277,9 @@ async def send_info_shop(callback_query: types.CallbackQuery, latitude, longitud
     if shop_name == 'kashirka':
         await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-21:30', reply_markup=keyboard)
     elif shop_name == 'bluhera':
-        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-21:00',reply_markup=keyboard)
+        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-21:00', reply_markup=keyboard)
     elif shop_name == 'topolinka':
-        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-22:00',reply_markup=keyboard)
+        await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-22:00', reply_markup=keyboard)
 
 
 async def create_groups_list(parent_uid: str | None) -> dict:
@@ -334,23 +334,11 @@ async def find_values_by_key_async(dictionary, target_key):
 
 async def background_task():
     try:
-        await logger.log('Запускаем фоновую задачу...', level=LogLevel.INFO)
-        async with MoyskladAPI() as api:
-            while True:
-                await api.get_counterparties(tag="клиент")
-                await asyncio.sleep(60)
-                await api.get_stores()
-                await asyncio.sleep(60)
-                await api.get_uoms()
-                await asyncio.sleep(60)
-                await api.get_groups_product()
-                await asyncio.sleep(60)
-                await api.get_products()
-                await asyncio.sleep(60)
-                await api.get_stock_by_stores()
-                global product_cash
-                product_cash = await create_groups_list(None)
-                await asyncio.sleep(300)  # Пример: ждем 300 секунд между итерациями
+        await logger.log('Запускаем фоновую задачу по обновлению кэша товаров...', level=LogLevel.INFO)
+        while True:
+            await asyncio.sleep(300)  # Пример: ждем 300 секунд между итерациями
+            global product_cash
+            product_cash = await create_groups_list(None)
     except asyncio.CancelledError:
         await logger.log('Background task is cancelled.', level=LogLevel.INFO)
 

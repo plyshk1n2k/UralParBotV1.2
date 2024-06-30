@@ -149,6 +149,21 @@ class PGMgr:
                                   f"store_uid: {store_uid} - {error}", level=LogLevel.ERROR)
             return None
 
+    async def add_bonus_operation(self, card_id, operation_id, moment_operation, points_earned) -> None | list:
+        try:
+            bonus_operation_row = (operation_id, card_id, points_earned, moment_operation)
+            insert_bonus_operation_query = """INSERT INTO bonus_operations (operation_id, card_id, points_earned, 
+                                                                            moment_operation) 
+                                              VALUES (%s, %s, %s, %s) 
+                                              ON CONFLICT (operation_id) DO NOTHING 
+                                              RETURNING *"""
+            result = await self.execute_query(insert_bonus_operation_query, *bonus_operation_row)
+            return result
+        except (Exception, psycopg2.Error) as error:
+            await self.logger.log(f"Ошибка добавления бонусной операции: {operation_id}, "
+                                  f"card_id: {card_id} - {error}", level=LogLevel.ERROR)
+            return None
+
     async def get_role(self, role_name):
         try:
             get_role_query = """SELECT * FROM roles WHERE role = %s"""
@@ -174,6 +189,15 @@ class PGMgr:
             return result
         except (Exception, psycopg2.Error) as error:
             await self.logger.log(f"Ошибка получения карты пользователя: {user_id} - {error}", level=LogLevel.ERROR)
+            return None
+
+    async def get_card_by_number(self, card_number):
+        try:
+            get_card_query = """SELECT * FROM cards WHERE uid = %s LIMIT 1"""
+            result = await self.execute_query(get_card_query, card_number)
+            return result
+        except (Exception, psycopg2.Error) as error:
+            await self.logger.log(f"Ошибка получения карты: {card_number} - {error}", level=LogLevel.ERROR)
             return None
 
     async def get_uom(self, uid: str) -> None | list:
