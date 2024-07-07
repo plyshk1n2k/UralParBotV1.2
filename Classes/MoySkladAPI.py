@@ -298,9 +298,8 @@ class MoyskladAPI:
                             if card_number:
                                 await self.process_bonus_operations(operation_id, card_number, moment_operation,
                                                                     points_earned)
-
-                    url = response.get('meta', {}).get('nextHref')
-                    params = {}
+                url = response.get('meta', {}).get('nextHref')
+                params = {}
         except Exception as e:
             await self.logger.log(f"Error processing bonus operations: {e}", LogLevel.ERROR)
 
