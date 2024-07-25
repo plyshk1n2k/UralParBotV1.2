@@ -234,15 +234,19 @@ async def show_groups(callback_query: types.CallbackQuery, group_data: dict | li
                 'размещенные ⬇️под сообщением⬇️*')
 
     if group_data and isinstance(group_data, dict):
-        data_keyboard = group_data.keys()
+        data_keyboard = [{'group_name': group_data[group]['group_name'], 'group_uid': group} for group in
+                         group_data.keys()]
     elif group_data and isinstance(group_data, list):
-        data_keyboard = group_data[0].get('subGroups', {})
+        # data_keyboard = group_data[0].get('subGroups', {})
+        sub_groups = group_data[0].get('subGroups', [])
+        data_keyboard = [{'group_name': sub_groups.get(subgroup, {})['group_name'], 'group_uid': subgroup} for subgroup
+                         in sub_groups.keys()]
         products = group_data[0].get('products', {})
 
         if products:
             text_msg = '\n'.join(
                 '*' + str(product).translate(translation_table) + ':*\n' +
-                '\n'.join(str('🏪' + key + ' - ' + str(value)).translate(translation_table)
+                '\n'.join(str('🏪' + key + ': ' + str(value)).translate(translation_table)
                           for key, value in products.get(product, {}).items()) + '\n'
                 for product in products.keys()
             )
@@ -284,13 +288,13 @@ async def send_info_shop(callback_query: types.CallbackQuery, latitude, longitud
 
 async def create_groups_list(parent_uid: str | None) -> dict:
     groups = await db.get_groups_by_parent(parent_uid, ['NoMark'])
-
     if groups is None:
         await logger.log('Нет данных о группах товаров!', logger.log_level.WARN)
         return {}
 
     result = {
-        group[1]: {
+        str(group[0]): {
+            'group_name': group[1],
             'products': {
                 product[1]: {
                     store[0]: int(store[1])
@@ -308,8 +312,12 @@ async def create_groups_list(parent_uid: str | None) -> dict:
             for product in await db.get_products_by_group(group[0])
         ])
     }
-    result = dict(sorted(result.items()))
-    return result
+
+    # Сортировка словаря по 'group_name'
+    sorted_result = dict(
+        sorted(result.items(), key=lambda item: item[1]['group_name'])
+    )
+    return sorted_result
 
 
 async def is_user_in_channel(user_id: int, chanel_id: int | str) -> bool:

@@ -42,7 +42,8 @@ def get_subscribe_keyboard():
 def get_dynamic_group_product_keyboard(groups: list):
     grouped_buttons = zip_longest(*[iter(groups)] * 2, fillvalue=None)
     keyboard_arr = [
-        [InlineKeyboardButton(text=value, callback_data=value) for value in row if value]
+        [InlineKeyboardButton(text=value.get('group_name', 'NoName'), callback_data=value.get('group_uid', 'NoUid'))
+         for value in row if value]
         for row in grouped_buttons
     ]
 
