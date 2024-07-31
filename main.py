@@ -299,7 +299,7 @@ async def create_groups_list(parent_uid: str | None) -> dict:
                 product[1]: {
                     store[0]: int(store[1])
                     for store in await db.get_product_remains(product[0])
-                    if store
+                    if store and str(store[2]) in stores_list
                 }
                 for product in await db.get_products_by_group(group[0])
                 if product and any(store for store in await db.get_product_remains(product[0]))

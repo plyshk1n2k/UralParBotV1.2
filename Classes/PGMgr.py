@@ -241,7 +241,8 @@ class PGMgr:
     async def get_product_remains(self, product_uid: str) -> list | None:
         try:
             get_products_query = """SELECT st.name, 
-                                           pr.count 
+                                           pr.count,
+                                           st.uid 
                                       FROM product_remains pr
                                       JOIN stores st ON pr.product_uid = %s AND pr.store_uid = st.uid
                                      WHERE pr.count > 0"""
