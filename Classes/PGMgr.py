@@ -239,18 +239,23 @@ class PGMgr:
             return None
 
     async def get_product_remains(self, product_uid: str) -> list | None:
+
         try:
-            get_products_query = """SELECT st.name, 
-                                           pr.count,
-                                           st.uid 
-                                      FROM product_remains pr
-                                      JOIN stores st ON pr.product_uid = %s AND pr.store_uid = st.uid
-                                     WHERE pr.count > 0"""
-            result = await self.execute_query(get_products_query, product_uid, fetch_all=True)
+            get_products_query = f"""
+                SELECT st.name, pr.count, st.uid 
+                FROM product_remains pr
+                JOIN stores st ON pr.product_uid = %s AND pr.store_uid = st.uid
+                WHERE pr.count > 0 AND st.uid IN ({', '.join(['%s'] * len(stores_list))})
+            """
+            # Параметры для SQL запроса (uid продукта + список магазинов)
+            params = [product_uid] + stores_list
+            result = await self.execute_query(get_products_query, *params, fetch_all=True)
             return result
         except (Exception, psycopg2.Error) as error:
-            await self.logger.log(f"Ошибка получения остатков товара product_uid: {product_uid} - {error}",
-                                  level=LogLevel.ERROR)
+            await self.logger.log(
+                f"Ошибка получения остатков товара product_uid: {product_uid} - {error}",
+                level=LogLevel.ERROR
+            )
             return None
 
     async def set_card_file_id(self, user_id, file_id):
