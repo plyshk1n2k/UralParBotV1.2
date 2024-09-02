@@ -1,6 +1,4 @@
-import time
 from itertools import zip_longest
-
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 
@@ -39,7 +37,7 @@ def get_subscribe_keyboard():
 
 
 # Клавиатура подписки на канал
-def get_dynamic_group_product_keyboard(groups: list):
+def get_dynamic_group_product_keyboard(groups: list, parent_group=None):
     grouped_buttons = zip_longest(*[iter(groups)] * 2, fillvalue=None)
     keyboard_arr = [
         [InlineKeyboardButton(text=value.get('group_name', 'NoName'), callback_data=value.get('group_uid', 'NoUid'))
@@ -47,6 +45,8 @@ def get_dynamic_group_product_keyboard(groups: list):
         for row in grouped_buttons
     ]
 
+    if parent_group is not None:
+        keyboard_arr.append([InlineKeyboardButton(text='⬅️Назад', callback_data=str(parent_group))])
     keyboard_arr.append([InlineKeyboardButton(text='⬅️Вернуться на главную', callback_data='go_to_main')])
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_arr)
 

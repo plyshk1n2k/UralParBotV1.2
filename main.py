@@ -207,7 +207,7 @@ async def show_bonus_card(user: tuple, callback_query: types.CallbackQuery) -> N
 
 async def show_groups(callback_query: types.CallbackQuery, group_data: dict | list) -> None:
     data_keyboard = {}
-
+    parent_group = None
     replacement_dict = {
         '_': '\\_',
         '*': '\\*',
@@ -239,6 +239,8 @@ async def show_groups(callback_query: types.CallbackQuery, group_data: dict | li
     elif group_data and isinstance(group_data, list):
         # data_keyboard = group_data[0].get('subGroups', {})
         sub_groups = group_data[0].get('subGroups', [])
+        parent_group = group_data[0]['parent_uid']
+
         data_keyboard = [{'group_name': sub_groups.get(subgroup, {})['group_name'], 'group_uid': subgroup} for subgroup
                          in sub_groups.keys()]
         products = group_data[0].get('products', {})
@@ -255,7 +257,7 @@ async def show_groups(callback_query: types.CallbackQuery, group_data: dict | li
         text=text_msg,
         chat_id=callback_query.message.chat.id,
         message_id=callback_query.message.message_id,
-        reply_markup=get_dynamic_group_product_keyboard(data_keyboard),
+        reply_markup=get_dynamic_group_product_keyboard(data_keyboard, parent_group),
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -286,14 +288,17 @@ async def send_info_shop(callback_query: types.CallbackQuery, latitude, longitud
         await bot.send_message(callback_query.from_user.id, 'График работы:\nПН-ВС 10:00-22:00', reply_markup=keyboard)
 
 
-async def create_groups_list(parent_uid: str | None) -> dict:
+async def create_groups_list(parent_uid: str | None, level=0) -> dict:
     groups = await db.get_groups_by_parent(parent_uid, ['NoMark'])
     if groups is None:
         await logger.log('Нет данных о группах товаров!', logger.log_level.WARN)
         return {}
+    level += 1
 
     result = {
         str(group[0]): {
+            'level': level,
+            'parent_uid': 'assortment' if level == 1 else parent_uid,
             'group_name': group[1],
             'products': {
                 product[1]: {
@@ -304,10 +309,10 @@ async def create_groups_list(parent_uid: str | None) -> dict:
                 for product in await db.get_products_by_group(group[0])
                 if product and any(store for store in await db.get_product_remains(product[0]))
             },
-            'subGroups': await create_groups_list(group[0])
+            'subGroups': await create_groups_list(group[0], level)
         }
         for group in groups
-        if await create_groups_list(group[0]) or any([
+        if await create_groups_list(group[0], level) or any([
             product and any(store for store in await db.get_product_remains(product[0]))
             for product in await db.get_products_by_group(group[0])
         ])
